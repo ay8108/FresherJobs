@@ -9,4 +9,5 @@ Route::get('/user', function (Request $request) {
 })->middleware('auth:sanctum');
 
 Route::get('/jobs', [JobController::class, 'index']);
+Route::get('/jobs/filters', [JobController::class, 'filters']);
 Route::get('/jobs/{id}', [JobController::class, 'show']);
