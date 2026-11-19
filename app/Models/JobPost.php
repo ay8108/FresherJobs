@@ -161,6 +161,23 @@ class JobPost extends Model
     {
         $query = static::query();
 
+        // Safety: Always exclude expired / outdated historical posts from fresher job feeds
+        $query->where('experience_level', '!=', 'Expired');
+
+        // Unless user explicitly requests 'Experienced', restrict feed to Indian fresher & internship opportunities
+        $reqExp = !empty($filters['experience'])
+            ? (is_array($filters['experience']) ? $filters['experience'] : explode(',', $filters['experience']))
+            : [];
+        $hasExperienced = in_array('Experienced', array_map('trim', $reqExp), true);
+
+        if (!$hasExperienced) {
+            $query->where('experience_level', '!=', 'Experienced')
+                  ->whereNotIn('source_name', ['WeWorkRemotely', 'PythonJobs'])
+                  ->where('location', 'NOT LIKE', '%Australia%')
+                  ->where('location', 'NOT LIKE', '%Melbourne%')
+                  ->where('title', 'NOT REGEXP', '^[0-9]+[[:space:]]+vacancies');
+        }
+
         // Search keyword in title, company, ai_role or description
         if (!empty($filters['search'])) {
             $search = trim($filters['search']);
@@ -276,6 +293,6 @@ class JobPost extends Model
                 break;
         }
 
-        return $query->paginate($perPage);
+        return $query->paginate($perPage, ['*'], 'page', $filters['page'] ?? null);
     }
 }
