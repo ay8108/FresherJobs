@@ -3,8 +3,10 @@
 namespace App\Console\Commands;
 
 use Illuminate\Console\Command;
+use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\File;
+use Throwable;
 
 class ImportJobsData extends Command
 {
@@ -47,8 +49,6 @@ class ImportJobsData extends Command
 
         $batchSize = max(1, min(500, (int) $this->option('batch') ?: 100));
         $chunks = array_chunk($records, $batchSize);
-        $totalChunks = count($chunks);
-
         $insertedCount = 0;
         $preserveIds = $this->hasOption('preserve-ids');
 
@@ -58,7 +58,7 @@ class ImportJobsData extends Command
         DB::beginTransaction();
 
         try {
-            foreach ($chunks as $chunkIndex => $chunk) {
+            foreach ($chunks as $chunk) {
                 $batchData = [];
 
                 foreach ($chunk as $job) {
@@ -75,13 +75,13 @@ class ImportJobsData extends Command
                         'source_job_id'    => $job['source_job_id'] ?? null,
                         'ai_role'          => $job['ai_role'] ?? null,
                         'ai_city'          => $job['ai_city'] ?? null,
-                        'ai_confidence'    => $job['ai_confidence'] ?? null,
+                        'ai_confidence'    => isset($job['ai_confidence']) && is_numeric($job['ai_confidence']) ? (float) $job['ai_confidence'] : null,
                         'ai_raw_response'  => $job['ai_raw_response'] ?? null,
                         'dedup_hash'       => $job['dedup_hash'] ?? md5(($job['title'] ?? '') . ($job['company_name'] ?? '')),
-                        'posted_at'        => $job['posted_at'] ?? null,
-                        'last_seen_at'     => $job['last_seen_at'] ?? null,
-                        'created_at'       => $job['created_at'] ?? now(),
-                        'updated_at'       => $job['updated_at'] ?? now(),
+                        'posted_at'        => $this->formatDateTime($job['posted_at'] ?? null),
+                        'last_seen_at'     => $this->formatDateTime($job['last_seen_at'] ?? null),
+                        'created_at'       => $this->formatDateTime($job['created_at'] ?? null) ?: now()->format('Y-m-d H:i:s'),
+                        'updated_at'       => $this->formatDateTime($job['updated_at'] ?? null) ?: now()->format('Y-m-d H:i:s'),
                     ];
 
                     if ($preserveIds && isset($job['id'])) {
@@ -100,7 +100,7 @@ class ImportJobsData extends Command
             $bar->finish();
             $this->newLine(2);
 
-        } catch (\Throwable $e) {
+        } catch (Throwable $e) {
             DB::rollBack();
             $this->newLine();
             $this->error('Import failed during transaction rollback: ' . $e->getMessage());
@@ -127,5 +127,21 @@ class ImportJobsData extends Command
         );
 
         return self::SUCCESS;
+    }
+
+    /**
+     * Parse date value to standard MySQL DATETIME string format (Y-m-d H:i:s).
+     */
+    private function formatDateTime(?string $value): ?string
+    {
+        if (empty($value)) {
+            return null;
+        }
+
+        try {
+            return Carbon::parse($value)->format('Y-m-d H:i:s');
+        } catch (Throwable) {
+            return null;
+        }
     }
 }

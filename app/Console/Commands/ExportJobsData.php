@@ -57,7 +57,19 @@ class ExportJobsData extends Command
             'updated_at',
         ];
 
-        $jobs = JobPost::orderBy('id')->get($columns)->toArray();
+        $jobs = JobPost::orderBy('id')->get($columns)->map(function ($job) {
+            $arr = $job->toArray();
+            foreach (['posted_at', 'last_seen_at', 'created_at', 'updated_at'] as $col) {
+                if (!empty($arr[$col])) {
+                    try {
+                        $arr[$col] = \Illuminate\Support\Carbon::parse($arr[$col])->format('Y-m-d H:i:s');
+                    } catch (\Throwable) {
+                        // Keep as is if unparseable
+                    }
+                }
+            }
+            return $arr;
+        })->toArray();
 
         $payload = [
             'exported_at' => now()->toIso8601String(),
