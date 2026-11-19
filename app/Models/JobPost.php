@@ -39,6 +39,32 @@ class JobPost extends Model
     }
 
     /**
+     * Get validated external apply URL (must start with http:// or https://).
+     * Returns null if missing or invalid so templates can safely handle fallback.
+     */
+    public function getSafeApplyUrlAttribute(): ?string
+    {
+        $url = trim($this->source_url ?? '');
+        if ($url === '' || $url === '#') {
+            return null;
+        }
+
+        if (preg_match('#^https?://#i', $url) && filter_var($url, FILTER_VALIDATE_URL)) {
+            return $url;
+        }
+
+        // If URL lacks protocol but is a valid domain/path, try prefixing https://
+        if (!preg_match('#^https?://#i', $url)) {
+            $testUrl = 'https://' . ltrim($url, '/');
+            if (filter_var($testUrl, FILTER_VALIDATE_URL)) {
+                return $testUrl;
+            }
+        }
+
+        return null;
+    }
+
+    /**
      * Get dynamic brand palette color for company logo.
      */
     public function getLogoClassAttribute(): string
@@ -174,8 +200,13 @@ class JobPost extends Model
             $query->where('experience_level', '!=', 'Experienced')
                   ->whereNotIn('source_name', ['WeWorkRemotely', 'PythonJobs'])
                   ->where('location', 'NOT LIKE', '%Australia%')
-                  ->where('location', 'NOT LIKE', '%Melbourne%')
-                  ->where('title', 'NOT REGEXP', '^[0-9]+[[:space:]]+vacancies');
+                  ->where('location', 'NOT LIKE', '%Melbourne%');
+
+            if (DB::connection()->getDriverName() === 'sqlite') {
+                $query->where('title', 'NOT LIKE', '%vacancies%');
+            } else {
+                $query->where('title', 'NOT REGEXP', '^[0-9]+[[:space:]]+vacancies');
+            }
         }
 
         // Search keyword in title, company, ai_role or description

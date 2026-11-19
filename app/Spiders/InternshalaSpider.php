@@ -47,14 +47,15 @@ class InternshalaSpider extends BasicSpider
                 $card->attr('id')
             );
 
-            $jobUrl = $card->filter('.job-title-href')->attr('data-href');
+            $titleEl = $card->filter('.job-title-href');
+            $jobUrl = $titleEl->count() ? ($titleEl->attr('href') ?: $titleEl->attr('data-href')) : null;
 
             if (empty($title) || empty($jobId)) {
                 continue;
             }
 
             $jobUrl = $jobUrl
-                ? 'https://internshala.com' . $jobUrl
+                ? (str_starts_with($jobUrl, 'http') ? $jobUrl : 'https://internshala.com' . $jobUrl)
                 : 'https://internshala.com/internship/detail/' . $jobId;
 
             $dedupHash = hash(

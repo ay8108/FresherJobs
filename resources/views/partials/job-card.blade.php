@@ -28,7 +28,7 @@
                 </div>
                 <div class="card-actions">
                     <button type="button" class="btn-outline-soft details-btn" data-id="{{ $job->id }}">View details</button>
-                    <a class="btn btn-primary btn-apply" href="{{ $job->source_url ?: '#' }}" target="_blank" rel="noopener noreferrer">
+                    <a class="btn btn-primary btn-apply" href="{{ $job->safe_apply_url ?: $job->source_url }}" target="_blank" rel="noopener noreferrer">
                         Apply now <i class="bi bi-arrow-up-right"></i>
                     </a>
                 </div>

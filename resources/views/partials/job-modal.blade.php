@@ -37,7 +37,7 @@
         </div>
         <div class="modal-footer justify-content-between">
             <span class="source">Source: {{ ucfirst($job->source_name ?: 'Careers') }} · Official application on employer portal</span>
-            <a class="btn btn-primary btn-apply" href="{{ $job->source_url ?: '#' }}" target="_blank" rel="noopener noreferrer">
+            <a class="btn btn-primary btn-apply" href="{{ $job->safe_apply_url ?: $job->source_url }}" target="_blank" rel="noopener noreferrer">
                 Apply on employer site <i class="bi bi-box-arrow-up-right ms-1"></i>
             </a>
         </div>
