@@ -11,14 +11,17 @@ Artisan::command('inspire', function () {
 
 
 
-// Strict 45-minute schedule (00:00, 00:45, 01:30, 02:15, 03:00, 03:45, etc.)
-foreach ([
-    '0,45 0,3,6,9,12,15,18,21 * * *',
-    '30 1,4,7,10,13,16,19,22 * * *',
-    '15 2,5,8,11,14,17,20,23 * * *',
-] as $cronExpr) {
-    Schedule::command('jobs:scrape-all')
-        ->cron($cronExpr)
-        ->withoutOverlapping();
-}
+/**
+ * Automated Daily Refresh Pipeline (Beep Requirement: "refreshes every day on its own")
+ *
+ * Stage 1: Scrape all registered spiders daily at midnight (00:00).
+ * Stage 2: 5 minutes later (00:05), run Gemini AI classification on all newly scraped jobs.
+ */
+Schedule::command('jobs:scrape-all')
+    ->dailyAt('00:00')
+    ->withoutOverlapping();
+
+Schedule::command('app:classify-jobs')
+    ->dailyAt('00:05')
+    ->withoutOverlapping();
 

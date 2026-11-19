@@ -35,18 +35,7 @@ class ScrapeAllJobs extends Command
         }
 
         $this->newLine();
-        $this->info('All scraping tasks completed.');
-
-        $this->newLine();
-        $this->info('Starting automatic AI classification for newly scraped jobs...');
-        try {
-            $this->call('app:classify-jobs', [
-                '--limit' => 100,
-                '--batch' => 10,
-            ]);
-        } catch (\Throwable $e) {
-            $this->error('Automatic classification error: ' . $e->getMessage());
-        }
+        $this->info('All scraping tasks completed successfully.');
 
         return self::SUCCESS;
     }
