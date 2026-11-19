@@ -1,14 +1,13 @@
 <?php
 
+use App\Http\Controllers\CommandRunnerController;
+use App\Http\Controllers\HomeController;
 use Illuminate\Support\Facades\Artisan;
 use Illuminate\Support\Facades\Route;
-use App\Http\Controllers\HomeController;
 
 Route::get('/', [HomeController::class, 'index'])->name('home');
 
 // URL trigger to run database migrations directly from browser without terminal access.
-// ->withoutMiddleware('web') is critical here to bypass the session middleware so it won't
-// fail if the 'sessions' table doesn't exist yet in the target database.
 Route::get('/run-migration', function () {
     try {
         Artisan::call('migrate', ['--force' => true]);
@@ -140,3 +139,14 @@ Route::get('/optimize-clear', function () {
         );
     }
 })->withoutMiddleware('web');
+
+// =========================================================================
+// Secure Command Runner Route (POST only, protected with secret token)
+// Permitted operations:
+//   - POST /command/verify-import-data
+//   - POST /command/verify-job-count
+//   - POST /command/reset-production-jobs
+//   - POST /command/import-production-jobs
+// =========================================================================
+Route::get('/command/{command_name}', [CommandRunnerController::class, 'handle'])
+    ->withoutMiddleware('web');
