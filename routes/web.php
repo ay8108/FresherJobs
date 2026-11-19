@@ -58,6 +58,67 @@ Route::get('/migration-status', function () {
     }
 })->withoutMiddleware('web');
 
+// URL trigger to run jobs:scrape-all (all spiders + automatic AI classification)
+Route::get('/run-scrape', function () {
+    set_time_limit(0);
+    ignore_user_abort(true);
+
+    return response()->stream(function () {
+        while (ob_get_level() > 0) {
+            ob_end_flush();
+        }
+        ob_implicit_flush(true);
+
+        echo '<!DOCTYPE html><html><head><title>Scraping Jobs</title>' .
+             '<style>body{background:#0f172a;color:#e2e8f0;font-family:monospace;padding:24px;font-size:13px;line-height:1.6;max-width:900px;margin:20px auto;}' .
+             'h2{color:#38bdf8;margin-top:0;}pre{background:#1e293b;padding:16px;border-radius:6px;white-space:pre-wrap;word-break:break-all;}</style></head><body>';
+        echo '<h2>🚀 Starting jobs:scrape-all ...</h2>';
+        echo '<p style="color:#94a3b8;">Please wait. Running all 10 spiders followed by AI classification (this may take 1-2 minutes)...</p>';
+        echo '<pre>';
+        flush();
+
+        try {
+            Artisan::call('jobs:scrape-all');
+            echo e(Artisan::output());
+            echo '</pre><h3 style="color:#4ade80;">✓ All Scraping and Classification Finished!</h3>';
+            echo '<p><a href="/" style="color:#60a5fa;font-weight:bold;text-decoration:underline;">← Back to Home Page</a></p>';
+        } catch (\Throwable $e) {
+            echo '</pre><h3 style="color:#ef4444;">✗ Scraping Failed: ' . e($e->getMessage()) . '</h3>';
+        }
+
+        echo '</body></html>';
+        flush();
+    }, 200, [
+        'Content-Type' => 'text/html; charset=utf-8',
+        'X-Accel-Buffering' => 'no',
+        'Cache-Control' => 'no-cache, no-store, must-revalidate',
+    ]);
+})->withoutMiddleware('web');
+
+// URL trigger to run only AI classification on unclassified jobs
+Route::get('/run-classify', function () {
+    set_time_limit(0);
+    try {
+        Artisan::call('app:classify-jobs', ['--limit' => 200, '--batch' => 10]);
+        $output = Artisan::output();
+
+        return response(
+            '<div style="font-family: monospace; background: #0f172a; color: #38bdf8; padding: 24px; border-radius: 8px; margin: 24px auto; max-width: 800px;">' .
+            '<h2 style="color: #4ade80; margin-top: 0;">✓ AI Classification Finished</h2>' .
+            '<pre style="white-space: pre-wrap; color: #e2e8f0; background: #1e293b; padding: 16px; border-radius: 6px;">' .
+            e(trim($output) ?: 'No unclassified jobs found.') .
+            '</pre>' .
+            '<p><a href="/" style="color: #60a5fa; text-decoration: underline;">Go to Home Page</a></p>' .
+            '</div>'
+        );
+    } catch (\Throwable $e) {
+        return response(
+            '<pre style="color: red; padding: 20px;">' . e($e->getMessage()) . '</pre>',
+            500
+        );
+    }
+})->withoutMiddleware('web');
+
 // Cache & config clear helper route
 Route::get('/optimize-clear', function () {
     try {
