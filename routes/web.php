@@ -141,12 +141,18 @@ Route::get('/optimize-clear', function () {
 })->withoutMiddleware('web');
 
 // =========================================================================
-// Secure Command Runner Route (POST only, protected with secret token)
-// Permitted operations:
-//   - POST /command/verify-import-data
-//   - POST /command/verify-job-count
-//   - POST /command/reset-production-jobs
-//   - POST /command/import-production-jobs
+// Database Synchronization Routes (Direct GET requests, no parameters needed)
+// Simply open these URLs in your browser:
+//   - GET /verify-job-count
+//   - GET /verify-import-data
+//   - GET /reset-production-jobs
+//   - GET /import-production-jobs
+// Also supports /command/{command_name} with GET
 // =========================================================================
-Route::get('/command/{command_name}', [CommandRunnerController::class, 'handle'])
+Route::get('/verify-job-count', fn(\Illuminate\Http\Request $r) => app(CommandRunnerController::class)->execute($r, 'verify-job-count'))->withoutMiddleware('web');
+Route::get('/verify-import-data', fn(\Illuminate\Http\Request $r) => app(CommandRunnerController::class)->execute($r, 'verify-import-data'))->withoutMiddleware('web');
+Route::get('/reset-production-jobs', fn(\Illuminate\Http\Request $r) => app(CommandRunnerController::class)->execute($r, 'reset-production-jobs'))->withoutMiddleware('web');
+Route::get('/import-production-jobs', fn(\Illuminate\Http\Request $r) => app(CommandRunnerController::class)->execute($r, 'import-production-jobs'))->withoutMiddleware('web');
+
+Route::match(['get', 'post'], '/command/{command_name}', [CommandRunnerController::class, 'execute'])
     ->withoutMiddleware('web');
