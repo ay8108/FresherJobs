@@ -173,10 +173,6 @@ $ php artisan schedule:list
 5 0 * * *  php artisan app:classify-jobs  --> Next Due: 00:05 (5 mins later)
 ```
 
-*Manual Web Trigger URLs (for demonstration & inspection without terminal access):*
-- **Scrape All Jobs:** `GET /run-scrape`
-- **Classify Jobs with Gemini AI:** `GET /classify-jobs` (or `/run-classify`, supporting optional `?limit=50&batch=10`)
-
 ---
 
 ## 6. Empirical Tagging Accuracy Audit (Hand-Checked 50 Posts)

@@ -94,10 +94,13 @@ Route::get('/run-scrape', function () {
     ]);
 })->withoutMiddleware('web');
 
-// URL trigger to run AI classification on unclassified jobs (Schedule::command('app:classify-jobs'))
-Route::match(['get', 'post'], '/classify-jobs', fn(\Illuminate\Http\Request $r) => app(CommandRunnerController::class)->execute($r, 'classify-jobs'))->withoutMiddleware('web');
-Route::match(['get', 'post'], '/run-classify', fn(\Illuminate\Http\Request $r) => app(CommandRunnerController::class)->execute($r, 'classify-jobs'))->withoutMiddleware('web');
-Route::match(['get', 'post'], '/run-classify-jobs', fn(\Illuminate\Http\Request $r) => app(CommandRunnerController::class)->execute($r, 'classify-jobs'))->withoutMiddleware('web');
+// URL trigger to run app:classify-jobs via GET
+Route::get('/classify-jobs', function () {
+    set_time_limit(0);
+    Artisan::call('app:classify-jobs');
+
+    return response('<pre>' . e(Artisan::output()) . '</pre>');
+});
 
 // Cache & config clear helper route
 Route::get('/optimize-clear', function () {
@@ -128,7 +131,6 @@ Route::get('/optimize-clear', function () {
 //   - GET /verify-import-data
 //   - GET /reset-production-jobs
 //   - GET /import-production-jobs
-//   - GET /classify-jobs
 // Also supports /command/{command_name} with GET
 // =========================================================================
 Route::get('/verify-job-count', fn(\Illuminate\Http\Request $r) => app(CommandRunnerController::class)->execute($r, 'verify-job-count'))->withoutMiddleware('web');
