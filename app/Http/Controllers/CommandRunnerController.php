@@ -32,6 +32,11 @@ class CommandRunnerController extends Controller
             'params' => ['--preserve-ids' => true],
             'title' => 'Production Job Posts Import',
         ],
+        'classify-jobs' => [
+            'artisan_cmd' => 'app:classify-jobs',
+            'params' => ['--limit' => 200, '--batch' => 10],
+            'title' => 'AI Job Classification (Gemini)',
+        ],
     ];
 
     /**
@@ -51,6 +56,7 @@ class CommandRunnerController extends Controller
                 '<li><a href="/verify-import-data" style="color: #38bdf8;">/verify-import-data</a> (Verify JSON dataset on disk)</li>' .
                 '<li><a href="/reset-production-jobs" style="color: #f87171;">/reset-production-jobs</a> (Backup & clear DB)</li>' .
                 '<li><a href="/import-production-jobs" style="color: #4ade80;">/import-production-jobs</a> (Import local jobs)</li>' .
+                '<li><a href="/classify-jobs" style="color: #a78bfa;">/classify-jobs</a> (Run AI classification on jobs)</li>' .
                 '</ul>' .
                 '</div>',
                 404
@@ -61,8 +67,21 @@ class CommandRunnerController extends Controller
         set_time_limit(300);
         ignore_user_abort(true);
 
+        $params = $cmdDef['params'];
+        if ($request->has('limit')) {
+            $limitVal = $request->query('limit');
+            if ($limitVal === 'all' || $limitVal === '0') {
+                unset($params['--limit']);
+            } else {
+                $params['--limit'] = (int) $limitVal;
+            }
+        }
+        if ($request->has('batch')) {
+            $params['--batch'] = (int) $request->query('batch');
+        }
+
         try {
-            $exitCode = Artisan::call($cmdDef['artisan_cmd'], $cmdDef['params']);
+            $exitCode = Artisan::call($cmdDef['artisan_cmd'], $params);
             $output = Artisan::output();
 
             if ($request->expectsJson()) {
@@ -88,6 +107,8 @@ class CommandRunnerController extends Controller
                 '<a href="/reset-production-jobs" style="color: #f87171; text-decoration: underline; font-weight: bold;">3. Reset DB (Backup)</a>' .
                 '<span style="color: #475569;">|</span>' .
                 '<a href="/import-production-jobs" style="color: #4ade80; text-decoration: underline; font-weight: bold;">4. Import Dataset</a>' .
+                '<span style="color: #475569;">|</span>' .
+                '<a href="/classify-jobs" style="color: #a78bfa; text-decoration: underline; font-weight: bold;">5. Classify Jobs (AI)</a>' .
                 '<span style="color: #475569;">|</span>' .
                 '<a href="/" style="color: #cbd5e1; text-decoration: underline;">Home Page</a>' .
                 '</div>' .

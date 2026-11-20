@@ -94,29 +94,10 @@ Route::get('/run-scrape', function () {
     ]);
 })->withoutMiddleware('web');
 
-// URL trigger to run only AI classification on unclassified jobs
-Route::get('/run-classify', function () {
-    set_time_limit(0);
-    try {
-        Artisan::call('app:classify-jobs', ['--limit' => 200, '--batch' => 10]);
-        $output = Artisan::output();
-
-        return response(
-            '<div style="font-family: monospace; background: #0f172a; color: #38bdf8; padding: 24px; border-radius: 8px; margin: 24px auto; max-width: 800px;">' .
-            '<h2 style="color: #4ade80; margin-top: 0;">✓ AI Classification Finished</h2>' .
-            '<pre style="white-space: pre-wrap; color: #e2e8f0; background: #1e293b; padding: 16px; border-radius: 6px;">' .
-            e(trim($output) ?: 'No unclassified jobs found.') .
-            '</pre>' .
-            '<p><a href="/" style="color: #60a5fa; text-decoration: underline;">Go to Home Page</a></p>' .
-            '</div>'
-        );
-    } catch (\Throwable $e) {
-        return response(
-            '<pre style="color: red; padding: 20px;">' . e($e->getMessage()) . '</pre>',
-            500
-        );
-    }
-})->withoutMiddleware('web');
+// URL trigger to run AI classification on unclassified jobs (Schedule::command('app:classify-jobs'))
+Route::match(['get', 'post'], '/classify-jobs', fn(\Illuminate\Http\Request $r) => app(CommandRunnerController::class)->execute($r, 'classify-jobs'))->withoutMiddleware('web');
+Route::match(['get', 'post'], '/run-classify', fn(\Illuminate\Http\Request $r) => app(CommandRunnerController::class)->execute($r, 'classify-jobs'))->withoutMiddleware('web');
+Route::match(['get', 'post'], '/run-classify-jobs', fn(\Illuminate\Http\Request $r) => app(CommandRunnerController::class)->execute($r, 'classify-jobs'))->withoutMiddleware('web');
 
 // Cache & config clear helper route
 Route::get('/optimize-clear', function () {
@@ -147,6 +128,7 @@ Route::get('/optimize-clear', function () {
 //   - GET /verify-import-data
 //   - GET /reset-production-jobs
 //   - GET /import-production-jobs
+//   - GET /classify-jobs
 // Also supports /command/{command_name} with GET
 // =========================================================================
 Route::get('/verify-job-count', fn(\Illuminate\Http\Request $r) => app(CommandRunnerController::class)->execute($r, 'verify-job-count'))->withoutMiddleware('web');
